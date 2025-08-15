@@ -1,0 +1,43 @@
+SISTEMA DE PESAGEM DE VEICULOS
+==============================
+
+CONTEUDO DO PACOTE:
+
+1. Sistema_Principal\
+   - Sistema_Balanca.exe (Computador com balanca)
+
+2. Terminal_Remoto\
+   - Receptor_Peso.exe (Computador que recebe dados)
+
+3. Utilitarios\
+   - Descobrir_IP.exe (Para descobrir IP da rede)
+
+INSTRUCOES DE INSTALACAO:
+
+1. COMPUTADOR COM BALANCA:
+   - Copie Sistema_Balanca.exe
+   - Execute o programa
+   - Conecte a balanca na porta serial/USB
+
+2. COMPUTADOR RECEPTOR:
+   - Copie Receptor_Peso.exe
+   - Execute o programa
+   - Clique "Iniciar Servidor"
+   - Anote o IP deste computador
+
+3. CONFIGURACAO DE REDE:
+   - No Sistema_Balanca.exe, clique "Config IP"
+   - Digite o IP do computador receptor
+   - Clique "Conectar Terminal Remoto"
+
+4. USO:
+   - Modo 1: Pesagem continua em tempo real
+   - Modo 2: Captura dados quando apertar "I" na balanca
+
+SUPORTE:
+- Use Descobrir_IP.exe para encontrar IPs da rede
+- Porta padrao: 8888
+- Ambos computadores devem estar na mesma rede
+
+Versao: 1.0
+Data: 15/08/2025
