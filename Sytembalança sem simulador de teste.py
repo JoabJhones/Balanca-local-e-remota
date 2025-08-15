@@ -33,6 +33,7 @@ class App(ctk.CTk):
         self.host = '127.0.0.1'
         self.port = 8888
         self.auto_print = ctk.BooleanVar(value=False)  # Controle de impressão automática
+        self.selected_printer = "Padrão"  # Impressora selecionada
         
         # --- Interface ---
         self.main_frame = ctk.CTkFrame(self)
@@ -56,13 +57,10 @@ class App(ctk.CTk):
         self.mode_frame.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
         self.mode_frame.grid_columnconfigure(0, weight=1)
         
-        ctk.CTkLabel(self.mode_frame, text="MODO DE OPERAÇÃO", font=("Arial", 12, "bold")).grid(row=0, column=0, pady=(8, 3))
+        ctk.CTkLabel(self.mode_frame, text="SISTEMA ATIVO", font=("Arial", 12, "bold")).grid(row=0, column=0, pady=(8, 3))
         
-        self.button_modo1 = ctk.CTkButton(self.mode_frame, text="Pesagem Contínua", command=self.set_mode1, font=("Arial", 11), height=30)
-        self.button_modo1.grid(row=1, column=0, padx=8, pady=2, sticky="ew")
-        
-        self.button_modo2 = ctk.CTkButton(self.mode_frame, text="Captura Impressão", command=self.set_mode2, font=("Arial", 11), height=30)
-        self.button_modo2.grid(row=2, column=0, padx=8, pady=(2, 8), sticky="ew")
+        self.button_modo2 = ctk.CTkButton(self.mode_frame, text="Captura Impressão + Pesagem", command=self.set_mode2, font=("Arial", 11), height=30, fg_color=("#1f538d", "#14375e"))
+        self.button_modo2.grid(row=1, column=0, padx=8, pady=(2, 8), sticky="ew")
         
         # Botões de rede
         self.network_frame = ctk.CTkFrame(self.left_panel)
@@ -95,12 +93,24 @@ class App(ctk.CTk):
         ctk.CTkLabel(self.print_frame, text="CONFIGURAÇÃO DE IMPRESSÃO", font=("Arial", 14, "bold")).grid(row=0, column=0, pady=(10, 5))
         
         self.checkbox_auto_print = ctk.CTkCheckBox(self.print_frame, text="Impressão Automática", variable=self.auto_print, font=("Arial", 12))
-        self.checkbox_auto_print.grid(row=1, column=0, pady=(5, 10), sticky="w", padx=10)
+        self.checkbox_auto_print.grid(row=1, column=0, pady=(5, 5), sticky="w", padx=10)
+        
+        # Seletor de impressora
+        ctk.CTkLabel(self.print_frame, text="Impressora:", font=("Arial", 11)).grid(row=2, column=0, pady=(5, 2), sticky="w", padx=10)
+        
+        self.printer_combo = ctk.CTkComboBox(self.print_frame, values=["Padrão"], font=("Arial", 10), height=25, width=200)
+        self.printer_combo.grid(row=3, column=0, pady=(2, 5), sticky="ew", padx=10)
+        self.printer_combo.set("Padrão")
+        
+        # Botão para atualizar lista de impressoras
+        self.button_refresh_printers = ctk.CTkButton(self.print_frame, text="Atualizar Lista", command=self.refresh_printers, font=("Arial", 10), height=25)
+        self.button_refresh_printers.grid(row=4, column=0, pady=(2, 10), sticky="ew", padx=10)
 
         # Painel direito - Área de exibição
         self.right_panel = ctk.CTkFrame(self.main_frame)
         self.right_panel.grid(row=1, column=1, sticky="nsew")
         self.right_panel.grid_columnconfigure(0, weight=1)
+        self.right_panel.grid_columnconfigure(1, weight=2)  # Coluna da área de texto maior
         self.right_panel.grid_rowconfigure(1, weight=1)
 
         # Área de exibição (muda conforme o modo)
@@ -124,50 +134,32 @@ class App(ctk.CTk):
         
 
 
-        # Inicializa no modo 1
-        self.set_mode1()
+        # Inicializa no modo 2 (único modo disponível)
+        self.set_mode2()
+        
+        # Carrega lista de impressoras
+        self.refresh_printers()
         
         # Lidar com o fechamento da janela
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     # --- Funções de Modo ---
-    def set_mode1(self):
-        """Configura o modo 1 - Pesagem contínua."""
-        if self.running:
-            self.stop_reading()
-        
-        self.current_mode = 1
-        self.button_modo1.configure(fg_color=("#1f538d", "#14375e"))  # Azul escuro (ativo)
-        self.button_modo2.configure(fg_color=("#3a7ebf", "#1f538d"))  # Azul claro (inativo)
-        
-        # Esconde widgets do modo 2
-        self.impressao_header.grid_remove()
-        self.text_impressao.grid_remove()
-        self.label_aguardando.grid_remove()
-        
-        # Mostra widgets do modo 1 - centralizado
-        self.label_peso.grid(row=1, column=0, sticky="")
-        
-        # Inicia automaticamente a pesagem
-        self.start_reading()
-        
     def set_mode2(self):
-        """Configura o modo 2 - Captura de impressão."""
+        """Configura o modo 2 - Captura de impressão com pesagem contínua."""
         if self.running:
             self.stop_reading()
         
         self.current_mode = 2
         self.button_modo2.configure(fg_color=("#1f538d", "#14375e"))  # Azul escuro (ativo)
-        self.button_modo1.configure(fg_color=("#3a7ebf", "#1f538d"))  # Azul claro (inativo)
         
         # Esconde widgets do modo 1
         self.label_peso.grid_remove()
         
         # Mostra widgets do modo 2 com layout similar ao receptor_peso.py
         # Cabeçalho com título e botão limpar
-        self.impressao_header.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="ew")
+        self.impressao_header.grid(row=0, column=0, columnspan=2, padx=10, pady=(10, 5), sticky="ew")
         
-        ctk.CTkLabel(self.impressao_header, text="DADOS DE IMPRESSÃO CAPTURADOS", font=("Arial", 16, "bold")).grid(row=0, column=0, pady=10, padx=10)
+        ctk.CTkLabel(self.impressao_header, text="CAPTURA DE IMPRESSÃO + PESAGEM CONTÍNUA", font=("Arial", 16, "bold")).grid(row=0, column=0, pady=10, padx=10)
         
         # Frame para os botões
         buttons_frame = ctk.CTkFrame(self.impressao_header)
@@ -179,15 +171,37 @@ class App(ctk.CTk):
         self.button_limpar = ctk.CTkButton(buttons_frame, text="Limpar Dados", command=self.clear_print_data, font=("Arial", 12), height=30, width=100)
         self.button_limpar.pack(side="left")
         
-        # Área de texto grande
-        self.text_impressao.grid(row=1, column=0, padx=10, pady=(5, 10), sticky="nsew")
+        # Peso em tempo real (lado esquerdo) - centralizado
+        self.label_peso.grid(row=1, column=0, padx=(10, 5), pady=5, sticky="")
+        
+        # Área de texto grande (lado direito)
+        self.text_impressao.grid(row=1, column=1, padx=(5, 10), pady=5, sticky="nsew")
         
         # Label de status na parte inferior
-        self.label_aguardando.grid(row=2, column=0, pady=10)
+        self.label_aguardando.grid(row=2, column=0, columnspan=2, pady=10)
         
         # Inicia automaticamente a captura
         self.start_reading()
         
+    def refresh_printers(self):
+        """Atualiza a lista de impressoras disponíveis."""
+        try:
+            import win32print
+            printers = ["Padrão"]
+            
+            # Obtém lista de impressoras do Windows
+            for printer in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS):
+                printers.append(printer[2])  # Nome da impressora
+            
+            self.printer_combo.configure(values=printers)
+            
+        except ImportError:
+            # Se win32print não estiver disponível, mantém apenas "Padrão"
+            self.printer_combo.configure(values=["Padrão"])
+        except Exception as e:
+            print(f"Erro ao carregar impressoras: {e}")
+            self.printer_combo.configure(values=["Padrão"])
+    
     def clear_print_data(self):
         """Limpa os dados de impressão."""
         self.text_impressao.delete("1.0", "end")
@@ -231,8 +245,21 @@ class App(ctk.CTk):
                 temp_file.write(log_content)
                 temp_file_path = temp_file.name
             
-            # Envia para impressora padrão do Windows
-            os.startfile(temp_file_path, "print")
+            # Obtém impressora selecionada
+            selected_printer = self.printer_combo.get()
+            
+            if selected_printer == "Padrão":
+                # Usa impressora padrão
+                os.startfile(temp_file_path, "print")
+            else:
+                # Usa impressora específica
+                try:
+                    import win32print
+                    import win32api
+                    win32api.ShellExecute(0, "print", temp_file_path, f'/d:"{selected_printer}"', ".", 0)
+                except ImportError:
+                    # Fallback para impressora padrão se win32api não estiver disponível
+                    os.startfile(temp_file_path, "print")
             
             # Mostra confirmação centralizada na janela principal
             success_window = ctk.CTkToplevel(self)
@@ -286,8 +313,21 @@ class App(ctk.CTk):
                 temp_file.write(print_data)
                 temp_file_path = temp_file.name
             
-            # Envia para impressora
-            os.startfile(temp_file_path, "print")
+            # Obtém impressora selecionada
+            selected_printer = self.printer_combo.get()
+            
+            if selected_printer == "Padrão":
+                # Usa impressora padrão
+                os.startfile(temp_file_path, "print")
+            else:
+                # Usa impressora específica
+                try:
+                    import win32print
+                    import win32api
+                    win32api.ShellExecute(0, "print", temp_file_path, f'/d:"{selected_printer}"', ".", 0)
+                except ImportError:
+                    # Fallback para impressora padrão
+                    os.startfile(temp_file_path, "print")
             
             # Remove arquivo após 5 segundos
             self.after(5000, lambda: self.remove_temp_file(temp_file_path))
@@ -598,8 +638,20 @@ class App(ctk.CTk):
                                     self.process_weight_data(line)
                         
                         elif self.current_mode == 2:
-                            # Modo 2: Captura de impressão
+                            # Modo 2: Captura de impressão + Pesagem contínua
                             print_buffer += data
+                            
+                            # Processa também dados de peso em tempo real
+                            while '\n' in buffer or '\r' in buffer:
+                                if '\n' in buffer:
+                                    line, buffer = buffer.split('\n', 1)
+                                else:
+                                    line, buffer = buffer.split('\r', 1)
+                                
+                                line = line.strip()
+                                if line:
+                                    print(f"Modo 2 - Dados: '{line}'")  # Debug
+                                    self.process_weight_data(line)
                             
                             # Atualiza indicador de recebimento
                             if data.strip():
@@ -614,11 +666,11 @@ class App(ctk.CTk):
                         self.process_print_data(print_buffer)
                         print_buffer = ""
                         
-                    # Fallback readline para modo 1
-                    elif self.current_mode == 1:
+                    # Fallback readline para ambos os modos
+                    elif self.current_mode in [1, 2]:
                         line = self.ser.readline().decode('utf-8', errors='ignore').strip()
                         if line:
-                            print(f"Modo 1 - Readline: '{line}'")  # Debug
+                            print(f"Modo {self.current_mode} - Readline: '{line}'")  # Debug
                             self.process_weight_data(line)
                             
                 except serial.SerialException as e:
